@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-19 22:26:08
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-19 22:40:08
+LastEditTime: 2023-10-20 00:11:08
 FilePath: /CSInference/csinference/core/util.py
 Description: 
 
@@ -16,6 +16,8 @@ class Instance:
         self.cpu = cpu
         if mem is None:
             self.mem = self.cpu * 2
+        else:
+            self.mem = mem
         self.gpu = gpu
     
     def set_cpu(self, cpu : float):
