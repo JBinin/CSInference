@@ -1,0 +1,6 @@
+{
+    "model_name": "VGG19",
+    "SLO": 1,
+    "algorithm": "CSInference",
+    "cfg_path": "conf"
+}
