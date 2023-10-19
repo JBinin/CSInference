@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-09 22:27:45
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-19 22:41:23
+LastEditTime: 2023-10-19 23:04:17
 FilePath: /CSInference/csinference/core/cost.py
 Description: 
 
@@ -21,7 +21,7 @@ class FunctionCost():
         self.gpu_cost = 0.00011
         self.invocation_cost = 0.009 / 10000
 
-    def cost(self, duration: float, batch: int = 1) -> float:
+    def cost(self, duration: float, batch: int) -> float:
         if self.gpu is None:
             gpu = 0
         else:

@@ -2,13 +2,14 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-19 21:04:25
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-19 21:56:51
+LastEditTime: 2023-10-19 23:06:59
 FilePath: /CSInference/csinference/core/latency.py
 Description: 
 
 Copyright (c) 2023 by icloud-ecnu, All Rights Reserved. 
 '''
 import math
+from csinference.core.util import Instance
 
 
 class CPULatency:
@@ -24,10 +25,12 @@ class CPULatency:
         self.k7 = params['k7']
         self.k8 = params['k8']
 
-    def lat_avg(self, cpu: float, batch_size: int = 1):
+    def lat_avg(self, instance: Instance, batch_size: int):
+        cpu = instance.cpu
         return (self.k1 * batch_size + self.k2) / (cpu + self.k3) + self.k4
 
-    def lat_max(self, cpu: float, batch_size: int = 1):
+    def lat_max(self, instance: Instance, batch_size: int):
+        cpu = instance.cpu
         return (self.k5 * batch_size + self.k6) / (cpu + self.k7) + self.k8
 
 
@@ -39,11 +42,13 @@ class GPULatency:
         self.t = params['t']
         self.G = params['G']
 
-    def lat_avg(self, gpu: float, batch_size: int = 1):
+    def lat_avg(self, instance: Instance, batch_size: int):
+        gpu = instance.gpu
         L = self.g1 * batch_size + self.g2
         return L * self.G / gpu
 
-    def lat_max(self, gpu: float, batch_size: int = 1):
+    def lat_max(self, instance: Instance, batch_size: int):
+        gpu = instance.gpu
         L = self.g1 * batch_size + self.g2
         n = math.floor(L / (gpu * self.t))
         return (self.G - gpu) * (n+1) * self.t + L
