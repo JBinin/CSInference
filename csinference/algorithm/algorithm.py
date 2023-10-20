@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-08 17:10:16
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-19 23:53:56
+LastEditTime: 2023-10-20 23:40:09
 FilePath: /CSInference/csinference/algorithm/algorithm.py
 Description: 
 
@@ -15,7 +15,7 @@ from numpy import Inf
 import os
 
 from csinference.core.cost import FunctionCost
-from csinference.core.util import Instance
+from csinference.core.util import Instance, Cfg
 from csinference.core.latency import CPULatency, GPULatency
 
 
@@ -23,7 +23,7 @@ class FunctionCfg():
     def __init__(self, config) -> None:
         self.config = config
         pass
-    
+
     def get_config(self, arrival_rate: float, slo: Union[float, None] = None) -> Tuple[dict, dict]:
         self.arrival_rate = arrival_rate
         self.slo = slo
@@ -35,7 +35,7 @@ class BATCH(FunctionCfg):
     def __init__(self, config) -> None:
         super().__init__(config)
 
-    def get_config(self, arrival_rate : float, slo : Union[float, None] = None) -> Tuple[dict, dict]:
+    def get_config(self, arrival_rate: float, slo: Union[float, None] = None) -> Tuple[dict, dict]:
         self.arrival_rate = arrival_rate
         self.slo = slo
         return {}, {}
@@ -58,6 +58,8 @@ class CSInference(FunctionCfg):
             self.model_config[self.model_name]['GPU']['A10'], self.model_name)
 
     def constrant(self, time_out: float, instance: Instance, batch_size: int) -> bool:
+        if batch_size == 1:
+            time_out = 0
         if instance.gpu is None:
             if time_out + self.cpu_lat_cal.lat_max(instance, batch_size) > self.SLO:
                 return False
@@ -67,27 +69,20 @@ class CSInference(FunctionCfg):
                 return False
             return True
 
-    def cpu_optimal(self, Res_CPU: List, B_CPU: List[int], R_CPU: float, cpu_min_cost: float, cpu_min_cfg: dict) -> Tuple[float, dict]:
+    def cpu_optimal(self, Res_CPU: List, B_CPU: List[int], R_CPU: float, cpu_min_cost: float, cpu_min_cfg: Union[Cfg, None]) -> Tuple[float, Union[Cfg, None]]:
         for cpu in Res_CPU:
             for b in B_CPU:
                 instance_cpu = Instance(cpu, 4 * cpu, None)
                 cpu_cost_cal = FunctionCost(instance_cpu)
                 if self.constrant(b / R_CPU, instance_cpu, b) is False:
                     break
-                cpu_cost = cpu_cost_cal.cost(
-                    self.cpu_lat_cal.lat_avg(instance_cpu, b), b)
+                cpu_cost = cpu_cost_cal.cost_with_distribution(b / R_CPU, self.arrival_rate, b, self.cpu_lat_cal, instance_cpu)
                 if cpu_cost < cpu_min_cost:
                     cpu_min_cost = cpu_cost
-                    cpu_min_cfg = {
-                        'cpu': instance_cpu.cpu,
-                        'mem': instance_cpu.mem,
-                        'gpu': instance_cpu.gpu,
-                        'batch_size': b,
-                        'cost': cpu_min_cost
-                    }
+                    cpu_min_cfg = Cfg(instance_cpu, b, cpu_min_cost, R_CPU)
         return cpu_min_cost, cpu_min_cfg
 
-    def gpu_optimal(self, Res_GPU: List, B_GPU: List[int], R_GPU: float, gpu_min_cost: float, gpu_min_cfg: dict) -> Tuple[float, dict]:
+    def gpu_optimal(self, Res_GPU: List, B_GPU: List[int], R_GPU: float, gpu_min_cost: float, gpu_min_cfg: Union[Cfg, None]) -> Tuple[float, Union[Cfg, None]]:
         for gpu in Res_GPU:
             for b in B_GPU:
                 # TODO: support both A10 and T4
@@ -95,20 +90,13 @@ class CSInference(FunctionCfg):
                 gpu_cost_cal = FunctionCost(instance_gpu)
                 if self.constrant(b / R_GPU, instance_gpu, b) is False:
                     break
-                gpu_cost = gpu_cost_cal.cost(
-                    self.gpu_lat_cal.lat_avg(instance_gpu, b), b)
+                gpu_cost = gpu_cost_cal.cost_with_distribution(b / R_GPU, self.arrival_rate, b, self.gpu_lat_cal, instance_gpu)
                 if gpu_cost < gpu_min_cost:
                     gpu_min_cost = gpu_cost
-                    gpu_min_cfg = {
-                        'cpu': instance_gpu.cpu,
-                        'mem': instance_gpu.mem,
-                        'gpu': instance_gpu.gpu,
-                        'batch_size': b,
-                        'cost': gpu_min_cost
-                    }
+                    gpu_min_cfg = Cfg(instance_gpu, b, gpu_min_cost, R_GPU)
         return gpu_min_cost, gpu_min_cfg
 
-    def get_config(self, arrival_rate: float, slo : Union[float, None] = None) -> Tuple[dict, dict]:
+    def get_config(self, arrival_rate: float, slo: Union[float, None] = None) -> Tuple[Union[Cfg, None], Union[Cfg, None]]:
         self.arrival_rate = arrival_rate
         if slo is not None:
             self.SLO = slo
@@ -118,15 +106,15 @@ class CSInference(FunctionCfg):
         B_CPU = list(range(1, 17, 1))
         Res_CPU = list(range(1, 17, 1))
 
-        B_GPU = list(range(1, 33, 1))
+        B_GPU = list(range(1, 129, 1))
         # TODO: support both A10 and T4
-        Res_GPU = list(range(1, 25, 1))
+        Res_GPU = list(range(3, 25, 1))
 
         cpu_min_cost = Inf
-        cpu_min_cfg = {}
+        cpu_min_cfg = None
 
         gpu_min_cost = Inf
-        gpu_min_cfg = {}
+        gpu_min_cfg = None
 
         for alpha in [0, 1]:
             beta = 1 - alpha
