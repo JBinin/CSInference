@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-19 22:26:08
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-20 21:23:50
+LastEditTime: 2023-10-21 10:48:08
 FilePath: /CSInference/csinference/core/util.py
 Description: 
 
@@ -33,11 +33,12 @@ class Instance:
 
 
 class Cfg:
-	def __init__(self, instance: Instance, batch_size : int, cost: float, rps : float) -> None:
+	def __init__(self, instance: Instance, batch_size : int, cost: float, rps : float, slo : float) -> None:
 		self.instance = instance
 		self.batch_size = batch_size
 		self.cost = cost
 		self.rps = rps
+		self.slo = slo
 
 	def __str__(self):
 		if self.instance.gpu is None:
@@ -45,10 +46,12 @@ class Cfg:
 			"mem:\t{%0.2f}" % self.instance.mem + "\n" + \
 			"batch:\t{%d}" % self.batch_size + "\n" + \
 			"rps:\t{%0.2f}" % self.rps + "\n" + \
+			"slo:\t{%0.2f}" % self.slo + "\n" + \
 			"cost:\t{%0.2e}" % self.cost + "\n"
 		return "cpu:\t{%0.2f}" % self.instance.cpu + "\n" + \
 			"mem:\t{%0.2f}" % self.instance.mem + "\n" + \
 			"gpu:\t{%d}" % self.instance.gpu + "\n" + \
 			"batch:\t{%d}" % self.batch_size + "\n" + \
 			"rps:\t{%0.2f}" % self.rps + "\n" + \
+			"slo:\t{%0.2f}" % self.slo + "\n" + \
 			"cost:\t{%0.2e}" % self.cost + "\n"

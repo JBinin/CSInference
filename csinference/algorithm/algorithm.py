@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-08 17:10:16
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-20 23:40:09
+LastEditTime: 2023-10-21 10:48:41
 FilePath: /CSInference/csinference/algorithm/algorithm.py
 Description: 
 
@@ -75,11 +75,11 @@ class CSInference(FunctionCfg):
                 instance_cpu = Instance(cpu, 4 * cpu, None)
                 cpu_cost_cal = FunctionCost(instance_cpu)
                 if self.constrant(b / R_CPU, instance_cpu, b) is False:
-                    break
+                    continue
                 cpu_cost = cpu_cost_cal.cost_with_distribution(b / R_CPU, self.arrival_rate, b, self.cpu_lat_cal, instance_cpu)
                 if cpu_cost < cpu_min_cost:
                     cpu_min_cost = cpu_cost
-                    cpu_min_cfg = Cfg(instance_cpu, b, cpu_min_cost, R_CPU)
+                    cpu_min_cfg = Cfg(instance_cpu, b, cpu_min_cost, R_CPU, self.SLO)
         return cpu_min_cost, cpu_min_cfg
 
     def gpu_optimal(self, Res_GPU: List, B_GPU: List[int], R_GPU: float, gpu_min_cost: float, gpu_min_cfg: Union[Cfg, None]) -> Tuple[float, Union[Cfg, None]]:
@@ -89,11 +89,11 @@ class CSInference(FunctionCfg):
                 instance_gpu = Instance(gpu / 3, gpu / 3 * 4, gpu)
                 gpu_cost_cal = FunctionCost(instance_gpu)
                 if self.constrant(b / R_GPU, instance_gpu, b) is False:
-                    break
+                    continue
                 gpu_cost = gpu_cost_cal.cost_with_distribution(b / R_GPU, self.arrival_rate, b, self.gpu_lat_cal, instance_gpu)
                 if gpu_cost < gpu_min_cost:
                     gpu_min_cost = gpu_cost
-                    gpu_min_cfg = Cfg(instance_gpu, b, gpu_min_cost, R_GPU)
+                    gpu_min_cfg = Cfg(instance_gpu, b, gpu_min_cost, R_GPU, self.SLO)
         return gpu_min_cost, gpu_min_cfg
 
     def get_config(self, arrival_rate: float, slo: Union[float, None] = None) -> Tuple[Union[Cfg, None], Union[Cfg, None]]:
