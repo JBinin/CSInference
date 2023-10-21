@@ -2,16 +2,18 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-08 17:10:16
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-21 11:12:49
+LastEditTime: 2023-10-21 15:56:01
 FilePath: /CSInference/csinference/algorithm/algorithm.py
 Description: 
 
 Copyright (c) 2023 by icloud-ecnu, All Rights Reserved. 
 '''
 
+from socket import timeout
 from typing import Tuple, List, Union
 import json
 from numpy import Inf
+import numpy as np
 import os
 
 from csinference.core.cost import FunctionCost
@@ -40,6 +42,17 @@ class BATCH(FunctionCfg):
         self.slo = slo
         return {}, {}
 
+
+def get_timeout_list(rps : float, batch_size : int, slo : float, step : float = 0.1):
+    if batch_size == 1:
+        return [0]
+
+    max_timeout = min(slo, batch_size / rps)
+    min_timeout = slo / 2
+    if max_timeout < min_timeout:
+        min_timeout = step
+    timeout_list = np.arange(min_timeout, max_timeout, step).tolist()
+    return timeout_list
 
 class CSInference(FunctionCfg):
     def __init__(self, config: dict) -> None:
@@ -72,12 +85,13 @@ class CSInference(FunctionCfg):
             for b in B_CPU:
                 instance_cpu = Instance(cpu, 4 * cpu, None)
                 cpu_cost_cal = FunctionCost(instance_cpu)
-                if self.constrant((b-1) / R_CPU, instance_cpu, b) is False:
-                    continue
-                cpu_cost = cpu_cost_cal.cost_with_distribution(b / R_CPU, self.arrival_rate, b, self.cpu_lat_cal, instance_cpu)
-                if cpu_cost < cpu_min_cost:
-                    cpu_min_cost = cpu_cost
-                    cpu_min_cfg = Cfg(instance_cpu, b, cpu_min_cost, R_CPU, self.SLO)
+                for t in get_timeout_list(R_CPU, b, self.SLO):
+                    if self.constrant(t, instance_cpu, b) is False:
+                        break
+                    cpu_cost = cpu_cost_cal.cost_with_distribution(t, R_CPU, b, self.cpu_lat_cal, instance_cpu)
+                    if cpu_cost < cpu_min_cost:
+                        cpu_min_cost = cpu_cost
+                        cpu_min_cfg = Cfg(instance_cpu, b, cpu_min_cost, R_CPU, self.SLO, t)
         return cpu_min_cost, cpu_min_cfg
 
     def gpu_optimal(self, Res_GPU: List, B_GPU: List[int], R_GPU: float, gpu_min_cost: float, gpu_min_cfg: Union[Cfg, None]) -> Tuple[float, Union[Cfg, None]]:
@@ -86,12 +100,13 @@ class CSInference(FunctionCfg):
                 # TODO: support both A10 and T4
                 instance_gpu = Instance(gpu / 3, gpu / 3 * 4, gpu)
                 gpu_cost_cal = FunctionCost(instance_gpu)
-                if self.constrant((b-1) / R_GPU, instance_gpu, b) is False:
-                    continue
-                gpu_cost = gpu_cost_cal.cost_with_distribution(b / R_GPU, self.arrival_rate, b, self.gpu_lat_cal, instance_gpu)
-                if gpu_cost < gpu_min_cost:
-                    gpu_min_cost = gpu_cost
-                    gpu_min_cfg = Cfg(instance_gpu, b, gpu_min_cost, R_GPU, self.SLO)
+                for t in get_timeout_list(R_GPU, b, self.SLO):
+                    if self.constrant(t, instance_gpu, b) is False:
+                        break
+                    gpu_cost = gpu_cost_cal.cost_with_distribution(t, R_GPU, b, self.gpu_lat_cal, instance_gpu)
+                    if gpu_cost < gpu_min_cost:
+                        gpu_min_cost = gpu_cost
+                        gpu_min_cfg = Cfg(instance_gpu, b, gpu_min_cost, R_GPU, self.SLO, t)
         return gpu_min_cost, gpu_min_cfg
 
     def get_config(self, arrival_rate: float, slo: Union[float, None] = None) -> Tuple[Union[Cfg, None], Union[Cfg, None]]:
@@ -102,11 +117,13 @@ class CSInference(FunctionCfg):
             self.SLO = self.config['SLO']
 
         B_CPU = list(range(1, 17, 1))
-        Res_CPU = list(range(1, 17, 1))
+        Res_CPU_low, Res_CPU_high = self.config["Res_CPU"]
+        Res_CPU = list(range(Res_CPU_low, Res_CPU_high+1, 1))
 
         B_GPU = list(range(1, 129, 1))
         # TODO: support both A10 and T4
-        Res_GPU = list(range(3, 25, 1))
+        Res_GPU_low, Res_GPU_high = self.config["Res_GPU"]
+        Res_GPU = list(range(Res_GPU_low, Res_GPU_high+1, 1))
 
         cpu_min_cost = Inf
         cpu_min_cfg = None
