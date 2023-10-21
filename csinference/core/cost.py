@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-09 22:27:45
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-20 23:36:34
+LastEditTime: 2023-10-21 10:50:49
 FilePath: /CSInference/csinference/core/cost.py
 Description: 
 
@@ -62,6 +62,8 @@ class FunctionCost():
 		return (self.invocation_cost + (self.cpu * self.cpu_cost + self.mem * self.mem_cost + gpu * self.gpu_cost) * duration) / batch
 	
 	def cost_with_distribution(self, time_out : float, rps : float, batch_max : int, lat_cal, instance) -> float:
+		if batch_max == 1:
+			return self.cost(lat_cal.lat_avg(instance, 1), 1)
 		p = batch_distribution(rps, batch_max, time_out)
 		c = 0.0
 		for i in range(batch_max):
