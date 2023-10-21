@@ -2,14 +2,13 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-08 17:10:16
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-21 15:56:01
+LastEditTime: 2023-10-21 22:27:25
 FilePath: /CSInference/csinference/algorithm/algorithm.py
 Description: 
 
 Copyright (c) 2023 by icloud-ecnu, All Rights Reserved. 
 '''
 
-from socket import timeout
 from typing import Tuple, List, Union
 import json
 from numpy import Inf
@@ -48,10 +47,7 @@ def get_timeout_list(rps : float, batch_size : int, slo : float, step : float = 
         return [0]
 
     max_timeout = min(slo, batch_size / rps)
-    min_timeout = slo / 2
-    if max_timeout < min_timeout:
-        min_timeout = step
-    timeout_list = np.arange(min_timeout, max_timeout, step).tolist()
+    timeout_list = np.arange(step, max_timeout, step).tolist()
     return timeout_list
 
 class CSInference(FunctionCfg):

@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-08 17:42:39
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-21 14:38:53
+LastEditTime: 2023-10-21 22:44:44
 FilePath: /CSInference/main.py
 Description: 
 
@@ -33,8 +33,8 @@ def simulation(config: dict, arrival_low, arrival_high):
 
 
 def simulate_slo(config: dict, arrival : float):
-    slo_low = 0.5
-    slo_high = 2
+    slo_low = 1
+    slo_high = 1.2
     print("Simulation: ")
     print("SLO range: [%0.2f, %0.2f]" % (slo_low, slo_high))
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     config["cfg_path"] = args.config
 
-    result = simulate_slo(config, 10)
+    result = simulate_slo(config, 4)
     length = len(result[0])
     cfgs = []
     for i in range(length):

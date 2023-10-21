@@ -1,6 +1,9 @@
 {
     "model_name": "VGG19",
-    "SLO": 1,
+    "SLO": 0.8,
     "algorithm": "CSInference",
-    "cfg_path": "conf"
+    "cfg_path": "conf",
+
+    "Res_CPU":[1, 16],
+    "Res_GPU": [1, 24]
 }
