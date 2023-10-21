@@ -2,14 +2,13 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-19 22:26:08
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-21 10:48:08
+LastEditTime: 2023-10-21 12:31:27
 FilePath: /CSInference/csinference/core/util.py
 Description: 
 
 Copyright (c) 2023 by icloud-ecnu, All Rights Reserved. 
 '''
 
-import re
 from typing import Union
 
 
@@ -33,11 +32,12 @@ class Instance:
 
 
 class Cfg:
-	def __init__(self, instance: Instance, batch_size : int, cost: float, rps : float, slo : float) -> None:
+	def __init__(self, instance: Instance, batch_size : int, cost: float, rps : float, slo : float, timeout : float) -> None:
 		self.instance = instance
 		self.batch_size = batch_size
 		self.cost = cost
 		self.rps = rps
+		self.timeout = timeout
 		self.slo = slo
 
 	def __str__(self):
@@ -47,6 +47,7 @@ class Cfg:
 			"batch:\t{%d}" % self.batch_size + "\n" + \
 			"rps:\t{%0.2f}" % self.rps + "\n" + \
 			"slo:\t{%0.2f}" % self.slo + "\n" + \
+			"timeout\t{%0.2f}" % self.timeout + "\n" + \
 			"cost:\t{%0.2e}" % self.cost + "\n"
 		return "cpu:\t{%0.2f}" % self.instance.cpu + "\n" + \
 			"mem:\t{%0.2f}" % self.instance.mem + "\n" + \
@@ -54,4 +55,5 @@ class Cfg:
 			"batch:\t{%d}" % self.batch_size + "\n" + \
 			"rps:\t{%0.2f}" % self.rps + "\n" + \
 			"slo:\t{%0.2f}" % self.slo + "\n" + \
+			"timeout\t{%0.2f}" % self.timeout + "\n" + \
 			"cost:\t{%0.2e}" % self.cost + "\n"
