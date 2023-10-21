@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-08 17:10:16
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-21 10:48:41
+LastEditTime: 2023-10-21 11:12:49
 FilePath: /CSInference/csinference/algorithm/algorithm.py
 Description: 
 
@@ -58,8 +58,6 @@ class CSInference(FunctionCfg):
             self.model_config[self.model_name]['GPU']['A10'], self.model_name)
 
     def constrant(self, time_out: float, instance: Instance, batch_size: int) -> bool:
-        if batch_size == 1:
-            time_out = 0
         if instance.gpu is None:
             if time_out + self.cpu_lat_cal.lat_max(instance, batch_size) > self.SLO:
                 return False
@@ -74,7 +72,7 @@ class CSInference(FunctionCfg):
             for b in B_CPU:
                 instance_cpu = Instance(cpu, 4 * cpu, None)
                 cpu_cost_cal = FunctionCost(instance_cpu)
-                if self.constrant(b / R_CPU, instance_cpu, b) is False:
+                if self.constrant((b-1) / R_CPU, instance_cpu, b) is False:
                     continue
                 cpu_cost = cpu_cost_cal.cost_with_distribution(b / R_CPU, self.arrival_rate, b, self.cpu_lat_cal, instance_cpu)
                 if cpu_cost < cpu_min_cost:
@@ -88,7 +86,7 @@ class CSInference(FunctionCfg):
                 # TODO: support both A10 and T4
                 instance_gpu = Instance(gpu / 3, gpu / 3 * 4, gpu)
                 gpu_cost_cal = FunctionCost(instance_gpu)
-                if self.constrant(b / R_GPU, instance_gpu, b) is False:
+                if self.constrant((b-1) / R_GPU, instance_gpu, b) is False:
                     continue
                 gpu_cost = gpu_cost_cal.cost_with_distribution(b / R_GPU, self.arrival_rate, b, self.gpu_lat_cal, instance_gpu)
                 if gpu_cost < gpu_min_cost:
