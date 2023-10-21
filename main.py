@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-08 17:42:39
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-20 23:43:42
+LastEditTime: 2023-10-21 14:38:53
 FilePath: /CSInference/main.py
 Description: 
 
@@ -14,6 +14,7 @@ import os
 import csinference
 
 import argparse
+import numpy as np
 
 
 def simulation(config: dict, arrival_low, arrival_high):
@@ -24,12 +25,28 @@ def simulation(config: dict, arrival_low, arrival_high):
 
     cpu_cfgs = []
     gpu_cfgs = []
-    for arrival_rate in range(arrival_low, arrival_high + 1, 5):
+    for arrival_rate in range(arrival_low, arrival_high + 1, 1):
         cpu_cfg, gpu_cfg = function_cfger.get_config(arrival_rate)
         cpu_cfgs.append(cpu_cfg)
         gpu_cfgs.append(gpu_cfg)
     return cpu_cfgs, gpu_cfgs
 
+
+def simulate_slo(config: dict, arrival : float):
+    slo_low = 0.5
+    slo_high = 2
+    print("Simulation: ")
+    print("SLO range: [%0.2f, %0.2f]" % (slo_low, slo_high))
+
+    function_cfger = csinference.NewFunctionCfg(config["algorithm"], config)
+
+    cpu_cfgs = []
+    gpu_cfgs = []
+    for slo in np.arange(slo_low, slo_high, 0.1):
+        cpu_cfg, gpu_cfg = function_cfger.get_config(arrival, slo)
+        cpu_cfgs.append(cpu_cfg)
+        gpu_cfgs.append(gpu_cfg)
+    return cpu_cfgs, gpu_cfgs
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='CSInference')
@@ -43,7 +60,7 @@ if __name__ == "__main__":
 
     config["cfg_path"] = args.config
 
-    result = simulation(config, 1, 100)
+    result = simulate_slo(config, 10)
     length = len(result[0])
     cfgs = []
     for i in range(length):
@@ -57,6 +74,7 @@ if __name__ == "__main__":
                 cfgs.append(result[0][i])
             else:
                 cfgs.append(result[1][i])
+
     
     for i in cfgs:
         print(i)
