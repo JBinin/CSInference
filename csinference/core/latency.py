@@ -2,54 +2,64 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-19 21:04:25
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-21 22:17:26
+LastEditTime: 2023-10-23 16:34:43
 FilePath: /CSInference/csinference/core/latency.py
 Description: 
 
 Copyright (c) 2023 by icloud-ecnu, All Rights Reserved. 
 '''
 import math
-from pyexpat import model
 from csinference.core.util import Instance
-
+import numpy as np
 
 class CPULatency:
-    def __init__(self, params: dict, model_name: str) -> None:
+    def __init__(self, params: dict, model_name: str, fitting_metod : str = 'Exponential') -> None:
         self.model_name = model_name
+        self.fitting_metod = fitting_metod
 
-        self.k1 = params['k1']
-        self.k2 = params['k2']
-        self.k3 = params['k3']
-        self.k4 = params['k4']
-        self.k5 = params['k5']
-        self.k6 = params['k6']
-        self.k7 = params['k7']
-        self.k8 = params['k8']
-
-        if model_name == 'ResNet50':
-            self.k9 = params['k9']
-            self.k10 = params['k10']
-            self.k11 = params['k11']
-            self.k12 = params['k12']
+        self.params_avg = params['avg'][self.fitting_metod]
+        self.params_max = params['max'][self.fitting_metod]
 
     def lat_avg(self, instance: Instance, batch_size: int):
         cpu = instance.cpu
-        if self.model_name == 'ResNet50':
-            return (self.k1 * batch_size + self.k2 * batch_size * batch_size + self.k3) / (cpu + self.k4 * cpu * cpu + self.k5) + self.k6
-        return (self.k1 * batch_size + self.k2) / (cpu + self.k3) + self.k4
+        if self.fitting_metod == 'Exponential':
+            f = self.params_avg['f']
+            g = self.params_avg['g']
+            k = self.params_avg['k']
+            F = f[0] * batch_size + f[1]
+            G = g[0] * np.exp(-cpu / g[1]) + g[2]
+            return k[0] * F * G + k[1] * F + k[2] * G + k[3]
+        elif self.fitting_metod == 'Polynomial':
+            f = self.params_avg['f']
+            g = self.params_avg['g']
+            k = self.params_avg['k']
+            F = f[0] * batch_size + f[1]
+            G = cpu + g[0]
+            return F / G + k[0]
 
     def lat_max(self, instance: Instance, batch_size: int):
         cpu = instance.cpu
-        if self.model_name == 'ResNet50':
-            return (self.k7 * batch_size + self.k8 * batch_size * batch_size + self.k9) / (cpu + self.k10 * cpu * cpu + self.k11) + self.k12
-        return (self.k5 * batch_size + self.k6) / (cpu + self.k7) + self.k8
+        if self.fitting_metod == 'Exponential':
+            f = self.params_max['f']
+            g = self.params_max['g']
+            k = self.params_max['k']
+            F = f[0] * batch_size + f[1]
+            G = g[0] * np.exp(-cpu / g[1]) + g[2]
+            return k[0] * F * G + k[1] * F + k[2] * G + k[3]
+        elif self.fitting_metod == 'Polynomial':
+            f = self.params_max['f']
+            g = self.params_max['g']
+            k = self.params_max['k']
+            F = f[0] * batch_size + f[1]
+            G = cpu + g[0]
+            return F / G + k[0]
 
 
 class GPULatency:
     def __init__(self, params: dict, model_name: str) -> None:
         self.model_name = model_name
-        self.g1 = params['g1']
-        self.g2 = params['g2']
+        self.g1 = params['l1']
+        self.g2 = params['l2']
         self.t = params['t']
         self.G = params['G']
 
