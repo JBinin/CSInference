@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-19 22:26:08
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-21 12:31:27
+LastEditTime: 2023-10-24 19:47:19
 FilePath: /CSInference/csinference/core/util.py
 Description: 
 
@@ -32,28 +32,46 @@ class Instance:
 
 
 class Cfg:
-	def __init__(self, instance: Instance, batch_size : int, cost: float, rps : float, slo : float, timeout : float) -> None:
+	def __init__(self, instance: Instance, batch_size : int, cost: float, rps : float, slo : float, timeout : float, proportion : float) -> None:
 		self.instance = instance
 		self.batch_size = batch_size
 		self.cost = cost
 		self.rps = rps
 		self.timeout = timeout
 		self.slo = slo
+		self.proportion = proportion
+
 
 	def __str__(self):
 		if self.instance.gpu is None:
-			return "cpu:\t{%0.2f}" % self.instance.cpu + "\n" + \
-			"mem:\t{%0.2f}" % self.instance.mem + "\n" + \
-			"batch:\t{%d}" % self.batch_size + "\n" + \
-			"rps:\t{%0.2f}" % self.rps + "\n" + \
-			"slo:\t{%0.2f}" % self.slo + "\n" + \
-			"timeout\t{%0.2f}" % self.timeout + "\n" + \
-			"cost:\t{%0.2e}" % self.cost + "\n"
-		return "cpu:\t{%0.2f}" % self.instance.cpu + "\n" + \
-			"mem:\t{%0.2f}" % self.instance.mem + "\n" + \
-			"gpu:\t{%d}" % self.instance.gpu + "\n" + \
-			"batch:\t{%d}" % self.batch_size + "\n" + \
-			"rps:\t{%0.2f}" % self.rps + "\n" + \
-			"slo:\t{%0.2f}" % self.slo + "\n" + \
-			"timeout\t{%0.2f}" % self.timeout + "\n" + \
-			"cost:\t{%0.2e}" % self.cost + "\n"
+			return "cpu:\t\t{%0.2f}" % self.instance.cpu + "\n" + \
+			"mem:\t\t{%0.2f}" % self.instance.mem + "\n" + \
+			"batch:\t\t{%d}" % self.batch_size + "\n" + \
+			"rps:\t\t{%0.2f}" % self.rps + "\n" + \
+			"slo:\t\t{%0.2f}" % self.slo + "\n" + \
+			"timeout:\t{%0.2f}" % self.timeout + "\n" + \
+			"proportion:\t{%0.2f}" % self.proportion + "\n" + \
+			"cost:\t\t{%0.2e}" % self.cost + "\n"
+		return "cpu:\t\t{%0.2f}" % self.instance.cpu + "\n" + \
+			"mem:\t\t{%0.2f}" % self.instance.mem + "\n" + \
+			"gpu:\t\t{%d}" % self.instance.gpu + "\n" + \
+			"batch:\t\t{%d}" % self.batch_size + "\n" + \
+			"rps:\t\t{%0.2f}" % self.rps + "\n" + \
+			"slo:\t\t{%0.2f}" % self.slo + "\n" + \
+			"timeout:\t{%0.2f}" % self.timeout + "\n" + \
+			"proportion:\t{%0.2f}" % self.proportion + "\n" + \
+			"cost:\t\t{%0.2e}" % self.cost + "\n"
+
+class Cfgs:
+	def __init__(self, *cfgs) -> None:
+		self.cfgs = cfgs
+	def __str__(self):
+		ret = ""
+		cost = 0
+		for cfg in self.cfgs:
+			if cfg is not None:
+				cost += cfg.cost * cfg.proportion
+				ret += str(cfg)
+		if ret == "":
+			return "None\n"
+		return "total cost:\t{%0.2e}" % cost + "\n" + ret
