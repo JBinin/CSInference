@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-19 21:04:25
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-23 16:34:43
+LastEditTime: 2023-10-24 01:52:06
 FilePath: /CSInference/csinference/core/latency.py
 Description: 
 
@@ -36,6 +36,7 @@ class CPULatency:
             F = f[0] * batch_size + f[1]
             G = cpu + g[0]
             return F / G + k[0]
+        return np.Inf
 
     def lat_max(self, instance: Instance, batch_size: int):
         cpu = instance.cpu
@@ -53,6 +54,7 @@ class CPULatency:
             F = f[0] * batch_size + f[1]
             G = cpu + g[0]
             return F / G + k[0]
+        return np.Inf
 
 
 class GPULatency:
