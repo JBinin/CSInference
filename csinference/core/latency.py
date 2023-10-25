@@ -2,12 +2,13 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-19 21:04:25
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-25 15:53:23
+LastEditTime: 2023-10-25 16:06:02
 FilePath: /CSInference/csinference/core/latency.py
 Description: 
 
 Copyright (c) 2023 by icloud-ecnu, All Rights Reserved. 
 '''
+from typing import List
 import math
 from csinference.core.util import Instance, batch_distribution
 import numpy as np
@@ -28,15 +29,18 @@ class Latency(ABC):
             return self.lat_avg(instance, 1)
 
         p = batch_distribution(rps, batch_max, time_out)
+        return self.lat_with_probability(instance, p)
+
+    def lat_with_probability(self, instance : Instance, probability : List[float]) ->float:
         tmp = 0.0
-        for i in range(batch_max):
-            tmp += p[i] * (i+1)
-        for i in range(batch_max):
-            p[i] = p[i] * (i+1) / tmp
+        for i in range(len(probability)):
+            tmp += probability[i] * (i+1)
+        for i in range(len(probability)):
+            probability[i] = probability[i] * (i+1) / tmp
 
         l = 0.0
-        for i in range(batch_max):
-            l += self.lat_avg(instance, i + 1) * p[i]
+        for i in range(len(probability)):
+            l += self.lat_avg(instance, i + 1) * probability[i]
         return l
 
 class CPULatency(Latency):
