@@ -2,25 +2,53 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-19 21:04:25
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-24 01:52:06
+LastEditTime: 2023-10-25 15:53:23
 FilePath: /CSInference/csinference/core/latency.py
 Description: 
 
 Copyright (c) 2023 by icloud-ecnu, All Rights Reserved. 
 '''
 import math
-from csinference.core.util import Instance
+from csinference.core.util import Instance, batch_distribution
 import numpy as np
 
-class CPULatency:
+from abc import ABC, abstractmethod
+
+
+class Latency(ABC):
+    def __init__(self) -> None:
+        pass
+    
+    @abstractmethod
+    def lat_avg(self, instance: Instance, batch_size: int) -> float:
+        pass
+    
+    def lat_with_distribution(self, time_out : float, rps : float, batch_max : int, instance : Instance) -> float:
+        if batch_max == 1:
+            return self.lat_avg(instance, 1)
+
+        p = batch_distribution(rps, batch_max, time_out)
+        tmp = 0.0
+        for i in range(batch_max):
+            tmp += p[i] * (i+1)
+        for i in range(batch_max):
+            p[i] = p[i] * (i+1) / tmp
+
+        l = 0.0
+        for i in range(batch_max):
+            l += self.lat_avg(instance, i + 1) * p[i]
+        return l
+
+class CPULatency(Latency):
     def __init__(self, params: dict, model_name: str, fitting_metod : str = 'Exponential') -> None:
+        super().__init__()
         self.model_name = model_name
         self.fitting_metod = fitting_metod
 
         self.params_avg = params['avg'][self.fitting_metod]
         self.params_max = params['max'][self.fitting_metod]
 
-    def lat_avg(self, instance: Instance, batch_size: int):
+    def lat_avg(self, instance: Instance, batch_size: int) -> float:
         cpu = instance.cpu
         if self.fitting_metod == 'Exponential':
             f = self.params_avg['f']
@@ -38,7 +66,7 @@ class CPULatency:
             return F / G + k[0]
         return np.Inf
 
-    def lat_max(self, instance: Instance, batch_size: int):
+    def lat_max(self, instance: Instance, batch_size: int) -> float:
         cpu = instance.cpu
         if self.fitting_metod == 'Exponential':
             f = self.params_max['f']
@@ -57,20 +85,21 @@ class CPULatency:
         return np.Inf
 
 
-class GPULatency:
+class GPULatency(Latency):
     def __init__(self, params: dict, model_name: str) -> None:
+        super().__init__()
         self.model_name = model_name
         self.g1 = params['l1']
         self.g2 = params['l2']
         self.t = params['t']
         self.G = params['G']
 
-    def lat_avg(self, instance: Instance, batch_size: int):
+    def lat_avg(self, instance: Instance, batch_size: int) -> float:
         gpu = instance.gpu
         L = self.g1 * batch_size + self.g2
         return L * self.G / gpu
 
-    def lat_max(self, instance: Instance, batch_size: int):
+    def lat_max(self, instance: Instance, batch_size: int) -> float:
         gpu = instance.gpu
         L = self.g1 * batch_size + self.g2
         n = math.floor(L / (gpu * self.t))
