@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-08 17:10:16
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-29 16:53:15
+LastEditTime: 2023-10-29 19:38:03
 FilePath: /CSInference/csinference/algorithm/algorithm.py
 Description: 
 
@@ -72,13 +72,10 @@ class CSInference(FunctionCfg):
             return True
     
     def get_max_timeout(self, instance : Instance, batch_size : int) -> float:
-        if batch_size == 1:
-            return 0
-        else:
-            if instance.gpu is None:
-                return self.SLO - self.cpu_lat_cal.lat_max(instance, batch_size)
-            else:   
-                return self.SLO - self.gpu_lat_cal.lat_max(instance, batch_size)
+        if instance.gpu is None:
+            return self.SLO - self.cpu_lat_cal.lat_max(instance, batch_size)
+        else:   
+            return self.SLO - self.gpu_lat_cal.lat_max(instance, batch_size)
 
     def constraint_cost(self, cost):
         if cost > self.SLO:
@@ -125,14 +122,18 @@ class CSInference(FunctionCfg):
     
     def get_config_cost(self, Res_CPU: List, B_CPU: List[int], Res_GPU: List, B_GPU: List[int]):
         cfgs = Cfgs()        
-        for alpha in np.arange(0, 1.1, 0.1):
+        for alpha in [0, 1]:
             cpu_cfg = None
             gpu_cfg = None 
             beta = 1 - alpha
             if alpha > 0:
                 cpu_cfg = self.get_config_with_one_platform(Res_CPU, B_CPU, False, alpha)
+                if cpu_cfg is None:
+                    continue
             if beta > 0:
                 gpu_cfg = self.get_config_with_one_platform(Res_GPU, B_GPU, True, beta)
+                if gpu_cfg is None:
+                    continue
             tmp = Cfgs(cpu_cfg, gpu_cfg)
             if tmp.cost() < cfgs.cost():
                 cfgs = tmp
@@ -157,6 +158,8 @@ class CSInference(FunctionCfg):
                     # constraint check
                     if time_out < 0:
                         break
+                    if b == 1:
+                        time_out = 0
                     p = batch_distribution(rps, b, time_out)
                     lat = lat_cal.lat_with_probability(ins, p, time_out, tau)[1]
                     cost = self.cost_cal.cost_with_probability(ins, p, lat_cal)
@@ -173,7 +176,7 @@ class CSInference(FunctionCfg):
                     lat = lat_cal.lat_with_probability(ins, p, time_out, tau)[1]
                     cost = self.cost_cal.cost_with_probability(ins, p, lat_cal)
                     tmp = Cfgs(Cfg(ins, b, cost, rps, self.SLO, time_out, proportion, lat))
-                    if tmp.lat() < cfgs.lat():
+                    if tmp.lat() <= cfgs.lat():
                         cfgs = tmp
         new_cfg = None
         for cfg in cfgs.get_cfgs():
@@ -247,7 +250,7 @@ class CSInference(FunctionCfg):
         B_CPU_low, B_CPU_high = self.config["B_CPU"]
         B_CPU = list(range(B_CPU_low, B_CPU_high+1, 1))
         Res_CPU_low, Res_CPU_high = self.config["Res_CPU"]
-        Res_CPU = list(range(Res_CPU_low, Res_CPU_high+1, 1))
+        Res_CPU = list(np.arange(Res_CPU_low, Res_CPU_high+1, 0.2))
 
         B_GPU_low, B_GPU_high = self.config["B_GPU"]
         B_GPU = list(range(B_GPU_low, B_GPU_high+1, 1))
