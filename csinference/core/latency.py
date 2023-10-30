@@ -2,13 +2,13 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-19 21:04:25
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-25 16:06:02
+LastEditTime: 2023-10-26 23:00:59
 FilePath: /CSInference/csinference/core/latency.py
 Description: 
 
 Copyright (c) 2023 by icloud-ecnu, All Rights Reserved. 
 '''
-from typing import List
+from typing import List, Tuple
 import math
 from csinference.core.util import Instance, batch_distribution
 import numpy as np
@@ -24,14 +24,15 @@ class Latency(ABC):
     def lat_avg(self, instance: Instance, batch_size: int) -> float:
         pass
     
-    def lat_with_distribution(self, time_out : float, rps : float, batch_max : int, instance : Instance) -> float:
+    def lat_with_distribution(self, time_out : float, rps : float, batch_max : int, instance : Instance) -> Tuple[float, float]:
         if batch_max == 1:
-            return self.lat_avg(instance, 1)
-
+            lat = self.lat_avg(instance, 1)
+            return lat, lat
         p = batch_distribution(rps, batch_max, time_out)
-        return self.lat_with_probability(instance, p)
+        tau = (batch_max - 1) / rps
+        return self.lat_with_probability(instance, p, time_out, tau)
 
-    def lat_with_probability(self, instance : Instance, probability : List[float]) ->float:
+    def lat_with_probability(self, instance : Instance, probability : List[float], time_out : float, tau : float) -> Tuple[float, float]:
         tmp = 0.0
         for i in range(len(probability)):
             tmp += probability[i] * (i+1)
@@ -41,7 +42,8 @@ class Latency(ABC):
         l = 0.0
         for i in range(len(probability)):
             l += self.lat_avg(instance, i + 1) * probability[i]
-        return l
+        wait_avg = time_out * (1 - probability[-1]) + min(time_out, tau) * probability[-1]
+        return l, l + wait_avg
 
 class CPULatency(Latency):
     def __init__(self, params: dict, model_name: str, fitting_metod : str = 'Exponential') -> None:

@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-19 22:26:08
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-25 15:54:40
+LastEditTime: 2023-10-29 16:41:03
 FilePath: /CSInference/csinference/core/util.py
 Description: 
 
@@ -14,7 +14,19 @@ import numpy as np
 from scipy.linalg import expm
 
 
-def batch_distribution(lam, B, T) -> List[float]:
+def get_timeout_list(rps: float, batch_size: int, slo: float, step: float = 0.1):
+    if batch_size == 1:
+        return [0]
+    
+    if rps == 0:
+        return [np.Inf]
+
+    max_timeout = min(slo, batch_size / rps)
+    timeout_list = np.arange(step, max_timeout, step).tolist()
+    return timeout_list
+
+
+def batch_distribution(lam: float, B: int, T: float) -> List[float]:
     init_state = [0] * B
     init_state[0] = 1
 
@@ -26,19 +38,15 @@ def batch_distribution(lam, B, T) -> List[float]:
             elif j == i+1:
                 Q[i][j] = lam
 
-    p = [0] * B
+    p = [0.0] * B
     pTmp = np.dot(init_state, expm(Q * T))
-    i = 0
-    j = 0
-    while j < B:
-        if i < B - 1:
-            p[i] = sum(pTmp[j:j+1])
+    for i in range(B):
+        if i < B-1:
+            p[i] = pTmp[i]
         else:
             p[i] = 1 - sum(p)
-        i += 1
-        j += 1
-
     return p
+
 
 class Instance:
     def __init__(self, cpu: float, mem: Union[float, None], gpu: Union[int, None]) -> None:
@@ -75,27 +83,51 @@ class Cfg:
             "mem:\t\t{%0.2f}" % self.instance.mem + "\n" + \
             "batch:\t\t{%d}" % self.batch_size + "\n" + \
             "rps:\t\t{%0.2f}" % self.rps + "\n" + \
-            "slo:\t\t{%0.2f}" % self.slo + "\n" + \
             "timeout:\t{%0.2f}" % self.timeout + "\n" + \
             "proportion:\t{%0.2f}" % self.proportion + "\n" + \
             "cost:\t\t{%0.2e}" % self.cost + "\n" \
-			"latency:\t{%0.2f}" % self.latency + "\n"
+            "latency:\t{%0.2f}" % self.latency + "\n"
         if self.instance.gpu is not None:
             ret = "gpu:\t\t{%d}" % self.instance.gpu + "\n" + ret
-        return "-" * 24 + "\n" + ret + "-" * 24 + "\n"
+        return ret
 
 
 class Cfgs:
-    def __init__(self, *cfgs) -> None:
+    def __init__(self, *cfgs : Union[Cfg, None]) -> None:
         self.cfgs = cfgs
+    
+    def get_cfgs(self):
+        return self.cfgs
 
-    def __str__(self):
-        ret = ""
+    def cost(self):
         cost = 0
         for cfg in self.cfgs:
             if cfg is not None:
                 cost += cfg.cost * cfg.proportion
+        if cost == 0:
+            return np.Inf
+        return cost
+
+    def lat(self):
+        lat = 0
+        for cfg in self.cfgs:
+            if cfg is not None:
+                lat += cfg.latency * cfg.proportion
+        if lat == 0:
+            return np.Inf
+        return lat
+
+    def __str__(self):
+        ret = ""
+        slo = None
+        for cfg in self.cfgs:
+            if cfg is not None:
+                ret += "-" * 24 + "\n"
                 ret += str(cfg)
+                slo = cfg.slo
         if ret == "":
             return "None\n"
-        return "total cost:\t{%0.2e}" % cost + "\n" + ret
+        ret = "total cost:\t{%0.2e}" % self.cost() + "\n" + \
+            "total latency:\t{%0.2f}" % self.lat() + "\n" + \
+            "slo:\t{%0.2e}" % slo+ "\n" + ret
+        return "*" * 24 + "\n" + ret + "*" * 24 + "\n"
