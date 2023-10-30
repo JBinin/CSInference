@@ -2,7 +2,7 @@
 Author: JBinin namechenjiabin@icloud.com
 Date: 2023-10-09 22:27:45
 LastEditors: JBinin namechenjiabin@icloud.com
-LastEditTime: 2023-10-28 19:23:15
+LastEditTime: 2023-10-30 11:42:28
 FilePath: /CSInference/csinference/core/cost.py
 Description: 
 
@@ -17,8 +17,8 @@ from typing import List
 
 class FunctionCost():
     def __init__(self) -> None:
-        self.cpu_cost = 0.000127
-        self.mem_cost = 0.0000127
+        self.cpu_cost = 0.00009
+        self.mem_cost = 0.000009
         self.gpu_cost = 0.00011
         self.invocation_cost = 0.009 / 10000
 
